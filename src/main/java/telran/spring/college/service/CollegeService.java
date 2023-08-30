@@ -3,6 +3,7 @@ package telran.spring.college.service;
 import java.util.List;
 
 import telran.spring.college.dto.*;
+import telran.spring.college.entity.Student;
 
 public interface CollegeService {
 

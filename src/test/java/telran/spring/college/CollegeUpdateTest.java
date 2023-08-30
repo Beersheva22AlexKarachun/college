@@ -115,5 +115,11 @@ class CollegeUpdateTest {
 		assertFalse(studentRepo.existsById(126L));
 		assertEquals(2, lecturerRepo.findAll().size());
 	}
+	
+//	@Test
+//	@Order(9)
+//	void jpaTest() {
+//		List<Student> students = service.findJPA();
+//	}
 
 }

@@ -1,5 +1,6 @@
 package telran.spring.college.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -67,7 +68,6 @@ public class CollegeServiceImpl implements CollegeService {
 			throw new IllegalStateException(
 					String.format(PERSON_ALREADY_EXIST, personClazz.getSimpleName(), dto.getId()));
 		}
-
 		Person person = null;
 		try {
 			person = (Person) personClazz.getDeclaredMethod("of", PersonDto.class).invoke(null, dto);
@@ -156,12 +156,9 @@ public class CollegeServiceImpl implements CollegeService {
 	@Override
 	@Transactional(readOnly = false)
 	public List<PersonDto> removeStudentsLessMarks(int nMarks) {
-		List<Student> removedStudents = studentRepo.findStudentsLessMark(nMarks);
-		removedStudents.forEach(student -> {
-			studentRepo.delete(student);
-			log.debug("Student {} is going to be deleted", student);
-		});
-
+		List<Student> removedStudents = studentRepo.findStudentsLessMarkJPA(nMarks);
+//		removedStudents.forEach(studentRepo::delete);
+		studentRepo.removeStudentsLessMark(nMarks);
 		return removedStudents.stream().map(Student::build).toList();
 	}
 
