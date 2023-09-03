@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 
 import telran.spring.college.dto.IdName;
 import telran.spring.college.dto.IdNameAvgMark;
+import telran.spring.college.dto.StudentMark;
+import telran.spring.college.dto.SubjectType;
 import telran.spring.college.entity.Student;
 
 public interface StudentRepository extends JpaRepository<Student, Long> {
@@ -18,20 +20,21 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 			+ "group by sl.id order by avg(mark) desc limit :nStudents", nativeQuery = true)
 	List<IdName> getBestStudentsForLecturer(long lecturerId, int nStudents);
 
-	@Query(value = "select ", nativeQuery = true)
+	@Query(value = "select student.id as id, student.name as name from Mark "
+			+ "group by student.id having count(mark) > :nMarksThreshold "
+			+ "and avg(mark) > (select avg(mark) from Mark) order by avg(mark) desc")
 	List<IdName> getStudentsAvgMarksGreaterCollegeAvg(int nMarksThreshold);
 
 	@Query(value = "select sl.id as id, sl.name as name, round(avg(mark), 2) as avgMark from "
 			+ "(select * from students_lecturers where dtype='Student') as sl "
 			+ "left join marks on sl.id=student_id group by sl.id order by avg(mark) desc", nativeQuery = true)
-	List<IdNameAvgMark> getStudentsAvgMarks();
+	List<StudentMark> getStudentsAvgMarks();
 
-	
 	@Query(value = "select * from students_lecturers where dtype='Student' and id in "
 			+ "(select sl.id from students_lecturers as sl left join marks on sl.id=student_id "
 			+ "group by sl.id having count(mark) < :nMarks)", nativeQuery = true)
 	List<Student> findStudentsLessMark(int nMarks);
-	
+
 	@Modifying
 	@Query(value = "delete from students_lecturers where dtype='Student' and id in "
 			+ "(select sl.id from students_lecturers as sl left join marks on sl.id=student_id "
@@ -39,5 +42,12 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 	int removeStudentsLessMark(int nMarks);
 
 	@Query("select student from Student student where size(marks) < :nMark")
-	List<Student> findStudentsLessMarkJPA(int nMark);
+	List<Student> findStudentsLessMarkJpql(int nMark);
+
+	@Modifying
+	@Query("delete from Student where size(marks) < :nMark")
+	void removeStudentsLessMarkJpql(int nMark);
+
+	List<IdName> findDistinctByMarksSubjectTypeAndMarksMarkGreaterThanOrderById(SubjectType type, int mark);
+
 }

@@ -11,4 +11,7 @@ public interface MarkRepository extends JpaRepository<Mark, Integer> {
 
 	@Query(value = "select * from marks where student_id = :studentId", nativeQuery = true)
 	List<Mark> findMarksByStudentId(long studentId);
+
+	List<Mark> findByStudentIdAndSubjectId(long studentId, String subjectId);
+	
 }

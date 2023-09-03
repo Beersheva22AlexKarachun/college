@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -13,14 +12,9 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.jdbc.Sql.ExecutionPhase;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.extern.slf4j.Slf4j;
-import telran.spring.college.dto.IdName;
-import telran.spring.college.dto.IdNameAvgMark;
 import telran.spring.college.dto.PersonDto;
-import telran.spring.college.dto.SubjectDto;
 import telran.spring.college.service.CollegeService;
 import telran.spring.exceptions.NotFoundException;
 import telran.spring.college.entity.*;
@@ -116,10 +110,19 @@ class CollegeUpdateTest {
 		assertEquals(2, lecturerRepo.findAll().size());
 	}
 	
-//	@Test
-//	@Order(9)
-//	void jpaTest() {
-//		List<Student> students = service.findJPA();
-//	}
+	@Test
+	@Order(9)
+	@Sql(scripts = { "college-read-test-script.sql" })
+	void removeLecturer() {
+		PersonDto lecturer = service.removeLecturer(LECTURER_ID);
+		assertEquals(LECTURER_ID, lecturer.getId());
+	}
+
+	@Test
+	@Order(10)
+	@Transactional(readOnly = true)
+	void removeLecturerTest() {
+		assertNull(lecturerRepo.findById(LECTURER_ID).orElseGet(() -> null));
+	}
 
 }

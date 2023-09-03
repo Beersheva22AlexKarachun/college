@@ -22,7 +22,6 @@ public class Student extends Person {
 		return new Student(student);
 	}
 
-	@OneToMany(mappedBy = "student", cascade = CascadeType.REMOVE) // For hibernate
-	@OnDelete(action = OnDeleteAction.CASCADE) // For DB
+	@OneToMany(mappedBy = "student")
 	List<Mark> marks;
 }

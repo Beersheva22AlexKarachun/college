@@ -6,7 +6,7 @@ import lombok.Data;
 @AllArgsConstructor
 @Data
 public class MarkDto {
-	int id;
+	Integer id;
 	long studentId;
 	String subjectId;
 	int mark;

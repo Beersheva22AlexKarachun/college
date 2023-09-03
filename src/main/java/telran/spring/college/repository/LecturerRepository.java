@@ -6,5 +6,4 @@ import telran.spring.college.entity.Lecturer;
 
 public interface LecturerRepository extends JpaRepository<Lecturer, Long> {
 
-	
 }

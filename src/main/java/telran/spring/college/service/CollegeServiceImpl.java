@@ -1,6 +1,8 @@
 package telran.spring.college.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -9,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import telran.spring.college.dto.*;
@@ -33,6 +37,7 @@ public class CollegeServiceImpl implements CollegeService {
 	private static final String PERSON_ALREADY_EXIST = "%s with id '$s' already exists.";
 	private static final String SUBJECT_ALREADY_EXIST = "Subject with id '$s' already exists.";
 
+	private final EntityManager entityManager;
 	private final StudentRepository studentRepo;
 	private final LecturerRepository lecturerRepo;
 	private final SubjectRepository subjectRepo;
@@ -59,7 +64,6 @@ public class CollegeServiceImpl implements CollegeService {
 		return id;
 	}
 
-	@SuppressWarnings("unused")
 	private <T> PersonDto addPerson(PersonDto dto, Class<T> personClazz, JpaRepository<T, Long> repo) {
 		if (dto.getId() == null) {
 			dto.setId(getUniqueId(repo));
@@ -88,8 +92,7 @@ public class CollegeServiceImpl implements CollegeService {
 		Lecturer lecturer = null;
 		Long lecturerId = subjectDto.getLecturerId();
 		if (lecturerId != null) {
-			lecturer = lecturerRepo.findById(lecturerId)
-					.orElseThrow(() -> new NotFoundException(String.format(LECTURER_NOT_EXIST, lecturerId)));
+			lecturer = getLecturerById(lecturerId);
 		}
 		Subject subject = Subject.of(subjectDto);
 		subject.setLecturer(lecturer);
@@ -110,17 +113,17 @@ public class CollegeServiceImpl implements CollegeService {
 	}
 
 	@Override
-	public List<IdName> getBestStudentForLecturer(long lecturerId, int nStudents) {
+	public List<IdName> bestStudentsLecturer(long lecturerId, int nStudents) {
 		return studentRepo.getBestStudentsForLecturer(lecturerId, nStudents);
 	}
 
 	@Override
-	public List<IdName> getStudentsAvgMarksGreaterCollegeAvg(int nMarksThreshold) {
+	public List<IdName> studentsAvgMarksGreaterCollegeAvg(int nMarksThreshold) {
 		return studentRepo.getStudentsAvgMarksGreaterCollegeAvg(nMarksThreshold);
 	}
 
 	@Override
-	public List<IdNameAvgMark> getStudentsAvgMarks() {
+	public List<StudentMark> studentsAvgMarks() {
 		return studentRepo.getStudentsAvgMarks();
 	}
 
@@ -140,8 +143,7 @@ public class CollegeServiceImpl implements CollegeService {
 				.orElseThrow(() -> new NotFoundException(String.format(SUBJECT_NOT_EXIST, subjectId)));
 		Lecturer lecturer = null;
 		if (lecturerId != null) {
-			lecturer = lecturerRepo.findById(lecturerId)
-					.orElseThrow(() -> new NotFoundException(String.format(LECTURER_NOT_EXIST, lecturerId)));
+			lecturer = getLecturerById(lecturerId);
 		}
 		subject.setLecturer(lecturer);
 		return subject.build();
@@ -156,10 +158,59 @@ public class CollegeServiceImpl implements CollegeService {
 	@Override
 	@Transactional(readOnly = false)
 	public List<PersonDto> removeStudentsLessMarks(int nMarks) {
-		List<Student> removedStudents = studentRepo.findStudentsLessMarkJPA(nMarks);
+		List<Student> removedStudents = studentRepo.findStudentsLessMarkJpql(nMarks);
 //		removedStudents.forEach(studentRepo::delete);
-		studentRepo.removeStudentsLessMark(nMarks);
+		studentRepo.removeStudentsLessMarkJpql(nMarks);
 		return removedStudents.stream().map(Student::build).toList();
+	}
+
+	@Override
+	public List<MarkDto> findMarksByStudentAndSubject(long studentId, String subjectId) {
+		List<Mark> marks = markRepo.findByStudentIdAndSubjectId(studentId, subjectId);
+		return marks.stream().map(Mark::build).toList();
+	}
+
+	@Override
+	public List<IdName> studentsBySubjectMark(SubjectType type, int mark) {
+		return studentRepo.findDistinctByMarksSubjectTypeAndMarksMarkGreaterThanOrderById(type, mark);
+	}
+
+	@Override
+	@Transactional(readOnly = false)
+	public PersonDto removeLecturer(Long lecturerId) {
+		Lecturer lecturer = getLecturerById(lecturerId);
+		lecturerRepo.delete(lecturer);
+		return lecturer.build();
+	}
+
+	private Lecturer getLecturerById(Long lecturerId) {
+		return lecturerRepo.findById(lecturerId)
+				.orElseThrow(() -> new NotFoundException(String.format(LECTURER_NOT_EXIST, lecturerId)));
+	}
+
+	@Override
+	public List<String> jpqlQuery(QueryDto queryDto) {
+		Query query = entityManager.createQuery(queryDto.query());
+		Integer limit = queryDto.limit();
+		if (limit != null && limit > 0) {
+			query.setMaxResults(limit);
+
+		}
+		List<?> resultList = query.getResultList();
+		List<String> result = Collections.emptyList();
+		if (!resultList.isEmpty()) {
+			result = resultList.get(0).getClass().isArray() ? processMultiProjectionQuery((List<Object[]>) resultList)
+					: processSingleProjectionQuery((List<Object>) resultList);
+		}
+		return result;
+	}
+
+	private List<String> processSingleProjectionQuery(List<Object> resultList) {
+		return resultList.stream().map(Object::toString).toList();
+	}
+
+	private List<String> processMultiProjectionQuery(List<Object[]> resultList) {
+		return resultList.stream().map(Arrays::deepToString).toList();
 	}
 
 }

@@ -1,5 +1,7 @@
 package telran.spring.college.entity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.validator.constraints.Range;
 
 import jakarta.persistence.*;
@@ -17,11 +19,12 @@ public class Mark {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	int id;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY) //hibernate
+	@OnDelete(action = OnDeleteAction.CASCADE) //sql
 	@JoinColumn(nullable = false, name = "student_id")
 	Student student;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(nullable = false, name = "subject_id")
 	Subject subject;
 
